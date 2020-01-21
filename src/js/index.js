@@ -19,20 +19,20 @@ socket.on('open', function () {
 
 const init = async () => {
     try {
-        const ret = await get('/userInfo');
+        const ret = await get('/userinfo');
         if (ret.code == 2) {
             location.href = '/sign.html';
             return;
         }
         if (ret.code != 0) {
-            alert(ret.msg);
+            alert(ret.message);
             return;
         }
         user = ret.data;
         console.log(user);
         socket.emit('sign', user, sign);
     } catch (err) {
-        alert(err.msg || err.message);
+        alert(err.message);
     }
 }
 
