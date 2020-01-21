@@ -1,7 +1,7 @@
 {
-  "name": "fullstack-project",
+  "name": "pages-front",
   "version": "1.0.0",
-  "description": "node fullstack for website",
+  "description": "multipage front end project",
   "main": "app.js",
   "scripts": {
     "start": "webpack-dev-server --open --config webpack.dev.js",
