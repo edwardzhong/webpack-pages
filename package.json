@@ -1,5 +1,5 @@
 {
-  "name": "pages-front",
+  "name": "webpack-multipage",
   "version": "1.0.0",
   "description": "multipage front end project",
   "main": "app.js",
