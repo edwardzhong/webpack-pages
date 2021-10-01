@@ -1,103 +1,73 @@
-import io from 'socket.io-client';
-import { get, post } from './common/request';
+import { hexStringToArrayBuffer, dataViewToHexString } from './common/util';
 import '../css/base.css';
 import '../scss/index.scss';
 
-const input = document.getElementById('input');
-const content = document.getElementById('content');
-const nav = document.getElementById('nav');
-const tip = document.getElementById('tip');
-let user = {};
-let socket;
- 
-const init = async () => {
-	try {
-		const ret = await get('/userinfo');
-		if (ret.code == 2) {
-			location.href = '/sign.html';
-			return;
-		}
-		if (ret.code != 0) {
-			alert(ret.message);
-			return;
-		}
-		user = ret.data;
-		//建立websocket连接
-		socket = io('http://127.0.0.1:' + ret.socketPort);
-		//收到server的连接确认
-		socket.on('open', function() {
-			showTip('socket io is open !');
-		});
-		socket.emit('sign', user, sign);
-	} catch (err) {
-		alert(err.message);
-	}
-};
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
 
-init();
+document.getElementsByClassName('btn')[0].onclick = async () => {
+    const serviceID = '0000eee0-0000-1000-8000-00805f9b34fb';
+    const readCharID = '0000eee2-0000-1000-8000-00805f9b34fb';
+    const writeCharID = '0000eee1-0000-1000-8000-00805f9b34fb';
+    const traceCharID = '0000eee3-0000-1000-8000-00805f9b34fb';
+    const gestureCommond = 'aa553300';
+    const traceCommond = 'aa553200';
 
-//登录socket
-const sign = data => {
-	appendUser(data);
-	appendMsg(data);
-	showTip('login server success, have fun !');
-	setTimeout(hideTip, 1000);
+    try {
+        const device = await navigator.bluetooth.requestDevice({
+            filters: [{ name: 'MagicPen' }],
+            optionalServices: [serviceID],
+        });
 
-	//监听用户加入
-	socket.on('userin', data => {
-		appendUser(data);
-		appendMsg(data);
-	});
+        device.ongattserverdisconnected = () => {
+            alert('蓝牙设备已断开');
+        };
 
-	//监听用户离开
-	socket.on('userout', data => {
-		removeUser(data);
-		appendMsg(data);
-	});
+        const server = await device.gatt.connect();
 
-	//监听reply事件，打印消息信息
-	socket.on('reply', appendMsg);
-};
+        if (device.gatt.connected) {
+            alert('蓝牙设备已连接');
+        }
 
-//通过“回车”提交聊天信息
-input.onkeydown = function(e) {
-	let msg = this.value.trim();
-	if (e.keyCode === 13) {
-		if (!msg) return;
-		socket.emit('message', msg);
-		this.value = '';
-	}
-};
+        // 获取服务
+        const service = await server.getPrimaryService(serviceID);
+        // // 读取手势识别频道
+        // const receiver = await service.getCharacteristic(readCharID);
+        // await receiver.startNotifications();
+        // receiver.oncharacteristicvaluechanged = e => {
+        // 	const val = dataViewToHexString(e.target.value);
+        // 	const i = [
+        // 		'55aa0100',
+        // 		'55aa0200',
+        // 		'55aa5200',
+        // 		'55aa5100',
+        // 		'55aa5000',
+        // 		'55aa4f00',
+        // 		'55aac000',
+        // 		'55aab000',
+        // 	].indexOf(val);
+        // 	const actions = ['单击', '双击', '向上', '向下', '向左', '向右', '顺时针', '逆时针'];
+        // 	console.log(actions[i] || 'action not exist');
+        // };
 
-const appendMsg = data => {
-	let p = document.createElement('p');
-	let author = data.author == 'System' ? '' : data.author + ':';
-	p.innerHTML = `<time>${data.time}</time><span style="color:${data.color}">${author}</span><span>${data.text}</span>`;
-	content.appendChild(p);
-	content.scrollTop = content.scrollHeight;
-};
+        // 陀螺仪数据上报频道
+        const tracer = await service.getCharacteristic(traceCharID);
+        await tracer.startNotifications();
+        tracer.oncharacteristicvaluechanged = e => {
+            const val = dataViewToHexString(e.target.value);
+            const dx = parseInt(val.slice(0, 4), 16);
+            const dy = parseInt(val.slice(4, 8), 16);
+            const dz = parseInt(val.slice(8, 12), 16);
+            const ax = parseInt(val.slice(12, 16), 16);
+            const ay = parseInt(val.slice(16, 20, 16));
+            const az = parseInt(val.slice(20), 16);
+            console.log('角速度', ax, ay, az, '加速度', dx, dy, dz);
+        };
 
-const appendUser = data => {
-	let a = document.createElement('a');
-	a.href = 'javascript:;';
-	a.setAttribute('data-id', data.id);
-	a.innerText = data.name;
-	nav.appendChild(a);
-};
-
-const removeUser = data => {
-	Array.from(nav.children).forEach(a => {
-		if (a.dataset.id == data.id) {
-			nav.removeChild(a);
-		}
-	});
-};
-
-const showTip = msg => {
-	tip.innerText = msg;
-	tip.classList.add('show');
-};
-
-const hideTip = () => {
-	tip.classList.remove('show');
+        // 写命令频道
+        const controller = await service.getCharacteristic(writeCharID);
+        controller.writeValue(hexStringToArrayBuffer(gestureCommond));
+    } catch (err) {
+        console.log(err.message);
+    }
 };

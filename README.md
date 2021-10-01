@@ -1,9 +1,7 @@
 ## webpack 多页面前端项目模版
 ### 基于以下组件
-* webpack 4
-* axios
-* socket.io
-* pug 模版引擎
+* webpack 5
+* pug
 * scss
 
 
