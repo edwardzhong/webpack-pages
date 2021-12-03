@@ -83,7 +83,17 @@ module.exports = {
             },
             {
                 test: /\.pug$/,
-                use: ['html-loader', 'pug-html-loader'],
+                use: [
+                    'html-loader',
+                    {
+                        loader: 'pug-html-loader',
+                        options: {
+                            data: {
+                                title: 'webpack pug',
+                            },
+                        },
+                    },
+                ],
             },
             {
                 test: /\.css$/i,

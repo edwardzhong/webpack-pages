@@ -1,5 +1,6 @@
 build
 dist
+.temp_cache
 node_modules
 package-lock.json
 logs
